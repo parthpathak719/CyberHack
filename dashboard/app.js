@@ -156,11 +156,15 @@ function updateArpTable() {
 
     sizeEl.textContent = `${state.cache.length} entries`;
 
-    const quarantinedMacs = new Set(
-        state.quarantine
-            .filter(q => q.status === "applied")
-            .map(q => q.attacker_mac)
-    );
+    const quarantinedSet1 = new Set();
+    state.quarantine.forEach(q => {
+        if (q.status === "applied") {
+            quarantinedSet1.add(q.attacker_mac);
+        } else if (q.status === "released") {
+            quarantinedSet1.delete(q.attacker_mac);
+        }
+    });
+    const quarantinedMacs = quarantinedSet1;
 
     tbody.innerHTML = state.cache.map(entry => {
         const isQuarantined = quarantinedMacs.has(entry.mac);
@@ -411,11 +415,15 @@ function drawTopology() {
     ctx.clearRect(0, 0, w, h);
 
     // Define host positions
-    const quarantinedMacs = new Set(
-        state.quarantine
-            .filter(q => q.status === "applied")
-            .map(q => q.attacker_mac)
-    );
+    const quarantinedSet2 = new Set();
+    state.quarantine.forEach(q => {
+        if (q.status === "applied") {
+            quarantinedSet2.add(q.attacker_mac);
+        } else if (q.status === "released") {
+            quarantinedSet2.delete(q.attacker_mac);
+        }
+    });
+    const quarantinedMacs = quarantinedSet2;
 
     const hosts = state.topology.length > 0
         ? state.topology

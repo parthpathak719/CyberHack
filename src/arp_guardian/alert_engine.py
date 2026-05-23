@@ -41,7 +41,6 @@ class AlertEngine:
         self._on_quarantine = on_quarantine
         self._lock = threading.Lock()
         self._alerts: List[Alert] = []
-        self._quarantined_macs: set = set()
 
     def process_alert(self, alert: Alert) -> None:
         """
@@ -63,7 +62,7 @@ class AlertEngine:
             self._auto_quarantine
             and alert.auto_response
             and alert.src_mac
-            and alert.src_mac.lower() not in self._quarantined_macs
+            and alert.src_mac.lower() not in self._vlan_mgr.get_quarantined_macs()
         ):
             logger.info(
                 f"🔒 Auto-quarantine triggered for {alert.src_mac} "
@@ -71,9 +70,6 @@ class AlertEngine:
             )
             action = self._vlan_mgr.quarantine(alert)
             alert.auto_response = True
-
-            if action.status == "applied":
-                self._quarantined_macs.add(alert.src_mac.lower())
 
             if self._on_quarantine:
                 self._on_quarantine(action)
@@ -98,11 +94,12 @@ class AlertEngine:
             return [a.to_dict() for a in self._alerts]
 
     def get_summary(self) -> dict:
-        """Return a summary for the dashboard."""
+        """Return high-level summary for the dashboard."""
+        q_macs = self._vlan_mgr.get_quarantined_macs()
         with self._lock:
             return {
                 "total_alerts": len(self._alerts),
-                "quarantined_hosts": len(self._quarantined_macs),
+                "quarantined_hosts": len(q_macs),
                 "auto_quarantine_enabled": self._auto_quarantine,
-                "quarantined_macs": list(self._quarantined_macs),
+                "quarantined_macs": q_macs,
             }

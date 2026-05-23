@@ -354,12 +354,19 @@ def main():
     api_thread.start()
     logger.info(f"REST API server started on port {_config.api_port}")
 
+    # Define release callback for Phase 4
+    def release_all_attackers():
+        logger.info("Main controller issuing release command for quarantined hosts...")
+        for mac in _vlan_mgr.get_quarantined_macs():
+            _vlan_mgr.release(mac)
+
     # 6. Start monitor or simulator
     if _config.simulation_mode:
         _monitor = Simulator(
             on_event=on_arp_event,
             attack_delay_sec=args.attack_delay,
             on_attack_start=lambda: _detector.set_attack_start_time(),
+            on_release=release_all_attackers,
         )
         _monitor.start()
     else:

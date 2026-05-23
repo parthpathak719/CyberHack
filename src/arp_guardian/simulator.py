@@ -65,6 +65,7 @@ class Simulator:
         normal_interval_sec: float = 2.0,
         attack_interval_sec: float = 0.5,
         on_attack_start: Optional[Callable[[], None]] = None,
+        on_release: Optional[Callable[[], None]] = None,
     ):
         self._on_event = on_event
         self._attack_delay = attack_delay_sec
@@ -72,6 +73,7 @@ class Simulator:
         self._normal_interval = normal_interval_sec
         self._attack_interval = attack_interval_sec
         self._on_attack_start = on_attack_start
+        self._on_release = on_release
         self._running = False
         self._thread: Optional[threading.Thread] = None
         self._phase = "init"
@@ -122,35 +124,54 @@ class Simulator:
         if not self._running:
             return
 
-        # ── Phase 2: Attack ────────────────────────────────────────
-        self._phase = "attack"
-        logger.info("⚔️  Phase 2: ARP spoofing attack begins!")
-
-        if self._on_attack_start:
-            self._on_attack_start()
-
-        # Small delay to simulate realistic network propagation before
-        # the first spoofed packet reaches the monitor.
-        time.sleep(random.uniform(0.1, 0.5))
-
-        attack_start = time.time()
-        while self._running and (time.time() - attack_start) < self._attack_duration:
-            self._emit_attack_traffic()
-            # Also emit some normal traffic in background
-            if random.random() < 0.3:
-                self._emit_normal_traffic()
-            time.sleep(self._attack_interval)
-
-        if not self._running:
-            return
-
-        # ── Phase 3: Post-Quarantine ───────────────────────────────
-        self._phase = "post_quarantine"
-        logger.info("🛡️  Phase 3: Post-quarantine monitoring")
-
+        cycle_count = 1
         while self._running:
-            self._emit_normal_traffic()
-            time.sleep(self._normal_interval)
+            logger.info(f"🔄 Starting Cycle {cycle_count}")
+            
+            # ── Attack Phase ────────────────────────────────────────
+            self._phase = "attack"
+            logger.info("⚔️  Attack Phase: ARP spoofing attack begins!")
+            if self._on_attack_start and cycle_count == 1:
+                self._on_attack_start()
+            
+            # Brief pause before attack to simulate realistic timing on first cycle
+            if cycle_count == 1:
+                time.sleep(random.uniform(0.1, 0.5))
+
+            attack_start = time.time()
+            while self._running and (time.time() - attack_start) < 15.0:
+                self._emit_attack_traffic()
+                if random.random() < 0.3:
+                    self._emit_normal_traffic()
+                time.sleep(self._attack_interval)
+                
+            if not self._running:
+                break
+
+            # ── Quarantine Period ───────────────────────────────────
+            self._phase = "post_quarantine"
+            logger.info("🛡️  Quarantine Period: Attacker silenced (15s)")
+            
+            post_q_start = time.time()
+            while self._running and (time.time() - post_q_start) < 15.0:
+                self._emit_normal_traffic()
+                time.sleep(self._normal_interval)
+                
+            if not self._running:
+                break
+
+            # ── Release Phase ───────────────────────────────────────
+            self._phase = "release"
+            logger.info("🔓 Release Phase: Releasing attacker back to normal VLAN")
+            if self._on_release:
+                self._on_release()
+                
+            rel_start = time.time()
+            while self._running and (time.time() - rel_start) < 10.0:
+                self._emit_normal_traffic()
+                time.sleep(self._normal_interval)
+                
+            cycle_count += 1
 
     # ── Traffic Generators ─────────────────────────────────────────
 
