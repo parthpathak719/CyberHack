@@ -1,1 +1,1 @@
-print("hack")
+print("hak")
