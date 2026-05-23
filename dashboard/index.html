@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ARP Guardian — Real-time ARP Spoofing Detection and Automated Network Segmentation Dashboard. MITRE ATT&CK T1557.002.">
+    <title>ARP Guardian — Spoofing Detection Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ── Header ──────────────────────────────────────────────── -->
+    <header id="main-header">
+        <div class="header-left">
+            <div class="logo">
+                <span class="logo-icon">🛡️</span>
+                <h1>ARP Guardian</h1>
+            </div>
+            <span class="subtitle">ARP Spoofing Detection &amp; Network Segmentation</span>
+        </div>
+        <div class="header-right">
+            <div class="mitre-badge" id="mitre-badge">
+                <span class="mitre-label">MITRE ATT&CK</span>
+                <span class="mitre-id">T1557.002</span>
+            </div>
+            <div class="status-indicator" id="connection-status">
+                <span class="status-dot"></span>
+                <span class="status-text">Connecting…</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ── Statistics Cards ────────────────────────────────────── -->
+    <section id="stats-section" class="stats-grid">
+        <div class="stat-card" id="stat-events">
+            <div class="stat-icon">📡</div>
+            <div class="stat-body">
+                <div class="stat-value" id="total-events">0</div>
+                <div class="stat-label">ARP Events</div>
+            </div>
+        </div>
+        <div class="stat-card alert-card" id="stat-alerts">
+            <div class="stat-icon">🚨</div>
+            <div class="stat-body">
+                <div class="stat-value" id="total-alerts">0</div>
+                <div class="stat-label">Alerts</div>
+            </div>
+        </div>
+        <div class="stat-card quarantine-card" id="stat-quarantined">
+            <div class="stat-icon">🔒</div>
+            <div class="stat-body">
+                <div class="stat-value" id="total-quarantined">0</div>
+                <div class="stat-label">Quarantined</div>
+            </div>
+        </div>
+        <div class="stat-card detection-card" id="stat-detection">
+            <div class="stat-icon">⏱️</div>
+            <div class="stat-body">
+                <div class="stat-value" id="detection-time">—</div>
+                <div class="stat-label">Detection Time</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Main Grid ───────────────────────────────────────────── -->
+    <main class="main-grid">
+        <!-- ── Network Topology ────────────────────────────────── -->
+        <section class="panel topology-panel" id="topology-panel">
+            <div class="panel-header">
+                <h2>🌐 Network Topology</h2>
+                <span class="panel-badge" id="topology-mode">Simulation</span>
+            </div>
+            <div class="panel-body">
+                <canvas id="topology-canvas" width="600" height="650"></canvas>
+            </div>
+        </section>
+
+        <!-- ── Attack Timeline ─────────────────────────────────── -->
+        <section class="panel timeline-panel" id="timeline-panel">
+            <div class="panel-header">
+                <h2>⏳ Attack Timeline</h2>
+                <span class="panel-badge" id="phase-badge">Initializing</span>
+            </div>
+            <div class="panel-body">
+                <div class="timeline" id="attack-timeline">
+                    <div class="timeline-empty">Waiting for events…</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── ARP Cache Table ─────────────────────────────────── -->
+        <section class="panel cache-panel" id="cache-panel">
+            <div class="panel-header">
+                <h2>📋 ARP Binding Table</h2>
+                <span class="panel-badge" id="cache-size">0 entries</span>
+            </div>
+            <div class="panel-body">
+                <table class="data-table" id="arp-table">
+                    <thead>
+                        <tr>
+                            <th>IP Address</th>
+                            <th>MAC Address</th>
+                            <th>Status</th>
+                            <th>Changes</th>
+                            <th>VLAN</th>
+                            <th>Last Seen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="arp-table-body">
+                        <tr><td colspan="6" class="empty-row">No entries yet</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ── Detection Alerts ────────────────────────────────── -->
+        <section class="panel alerts-panel" id="alerts-panel">
+            <div class="panel-header">
+                <h2>🚨 Detection Alerts</h2>
+                <span class="panel-badge alert-count" id="alert-count">0</span>
+            </div>
+            <div class="panel-body">
+                <div class="alert-feed" id="alert-feed">
+                    <div class="alert-empty">No alerts detected</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Quarantine Actions ──────────────────────────────── -->
+        <section class="panel quarantine-panel" id="quarantine-panel">
+            <div class="panel-header">
+                <h2>🔐 Quarantine Actions</h2>
+            </div>
+            <div class="panel-body">
+                <div class="quarantine-feed" id="quarantine-feed">
+                    <div class="quarantine-empty">No quarantine actions</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── MITRE ATT&CK Mapping ───────────────────────────── -->
+        <section class="panel mitre-panel" id="mitre-panel">
+            <div class="panel-header">
+                <h2>🎯 MITRE ATT&CK Mapping</h2>
+            </div>
+            <div class="panel-body" id="mitre-content">
+                <div class="mitre-info">
+                    <div class="mitre-field">
+                        <span class="mitre-key">Technique:</span>
+                        <span class="mitre-val" id="mitre-technique">T1557.002</span>
+                    </div>
+                    <div class="mitre-field">
+                        <span class="mitre-key">Name:</span>
+                        <span class="mitre-val" id="mitre-name">ARP Cache Poisoning</span>
+                    </div>
+                    <div class="mitre-field">
+                        <span class="mitre-key">Tactic:</span>
+                        <span class="mitre-val" id="mitre-tactic">Credential Access / Collection</span>
+                    </div>
+                    <div class="mitre-field">
+                        <span class="mitre-key">Data Sources:</span>
+                        <span class="mitre-val" id="mitre-sources">Network Traffic</span>
+                    </div>
+                    <div class="mitre-mitigations" id="mitre-mitigations">
+                        <span class="mitre-key">Mitigations:</span>
+                        <ul id="mitre-mitigation-list"></ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ── Footer ──────────────────────────────────────────────── -->
+    <footer id="main-footer">
+        <span>ARP Guardian v1.0.0 — Hackathon Project</span>
+        <span>MITRE ATT&CK T1557.002 · On-Premises Architecture</span>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

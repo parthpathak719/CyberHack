@@ -1,0 +1,109 @@
+# ──────────────────────────────────────────────────────────────────
+# ARP Guardian — Docker Compose for Isolated LAN Simulation
+#
+# Creates a Docker bridge network (10.254.254.0/24) with:
+#   - switch-sim:  Simulated managed switch (Flask API on port 5000)
+#   - gateway:     Default gateway (10.254.254.1)
+#   - workstation: Victim workstation (10.254.254.10)
+#   - attacker:    ARP spoofing attacker (10.254.254.30)
+#   - monitor:     ARP Guardian daemon (10.254.254.50)
+#
+# Usage:
+#   docker-compose up --build
+#   docker-compose exec attacker python /app/arp_spoof.py \
+#     --target 10.254.254.10 --gateway 10.254.254.1
+# ──────────────────────────────────────────────────────────────────
+
+version: "3.8"
+
+networks:
+  lan:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.254.254.0/24
+          gateway: 10.254.254.254
+
+services:
+  # ── Simulated Switch ───────────────────────────────────────────
+  switch-sim:
+    build:
+      context: .
+      dockerfile: Dockerfile.switch
+    container_name: arp-switch
+    hostname: switch-sim
+    ports:
+      - "5055:5000"
+    networks:
+      lan:
+        ipv4_address: 10.254.254.2
+    restart: unless-stopped
+
+  # ── Gateway (simulated router) ─────────────────────────────────
+  gateway:
+    image: alpine:3.19
+    container_name: arp-gateway
+    hostname: gateway
+    command: ["sh", "-c", "apk add --no-cache iproute2 && ip route add default via 10.254.254.1 && tail -f /dev/null"]
+    cap_add:
+      - NET_ADMIN
+    networks:
+      lan:
+        ipv4_address: 10.254.254.1
+    restart: unless-stopped
+
+  # ── Victim Workstation ─────────────────────────────────────────
+  workstation:
+    image: alpine:3.19
+    container_name: arp-workstation
+    hostname: workstation
+    command: ["sh", "-c", "apk add --no-cache curl iproute2 && tail -f /dev/null"]
+    networks:
+      lan:
+        ipv4_address: 10.254.254.10
+    restart: unless-stopped
+
+  # ── Attacker ───────────────────────────────────────────────────
+  attacker:
+    build:
+      context: .
+      dockerfile: Dockerfile.attacker
+    container_name: arp-attacker
+    hostname: attacker
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    networks:
+      lan:
+        ipv4_address: 10.254.254.30
+    # Sits idle — launch attack manually:
+    #   docker exec arp-attacker python /app/arp_spoof.py \
+    #     --target 10.254.254.10 --gateway 10.254.254.1 --interface eth0
+    command: ["tail", "-f", "/dev/null"]
+    restart: unless-stopped
+
+  # ── ARP Guardian Monitor ───────────────────────────────────────
+  monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.monitor
+    container_name: arp-monitor
+    hostname: monitor
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    ports:
+      - "8085:8081"
+    environment:
+      - ARP_IFACE=eth0
+      - SWITCH_API_URL=http://switch-sim:5000
+      - GATEWAY_IP=10.254.254.1
+      - GATEWAY_MAC=02:42:c0:a8:64:01
+      - AUTO_QUARANTINE=true
+      - LOG_LEVEL=INFO
+    networks:
+      lan:
+        ipv4_address: 10.254.254.50
+    depends_on:
+      - switch-sim
+    restart: unless-stopped

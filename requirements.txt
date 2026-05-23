@@ -1,0 +1,12 @@
+# ARP Guardian — Python Dependencies
+# Core detection engine
+scapy>=2.5.0
+
+# SNMP for real switch integration (optional)
+pysnmp>=4.4.12
+
+# Switch simulator REST client
+requests>=2.31.0
+
+# Switch simulator server
+flask>=3.0.0

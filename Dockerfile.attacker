@@ -1,0 +1,21 @@
+# ARP Attacker — Dockerfile
+# Provides scapy for launching ARP spoofing attacks in the isolated LAN.
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    iproute2 \
+    net-tools \
+    iputils-ping \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install scapy
+RUN pip install --no-cache-dir scapy==2.5.0
+
+# Copy attack script
+COPY attacker/arp_spoof.py /app/arp_spoof.py
+
+CMD ["tail", "-f", "/dev/null"]

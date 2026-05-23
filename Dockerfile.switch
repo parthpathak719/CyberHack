@@ -1,0 +1,16 @@
+# Switch Simulator — Dockerfile
+# Runs the Flask-based managed switch simulation.
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install Flask
+RUN pip install --no-cache-dir flask==3.0.0
+
+# Copy switch simulator
+COPY switch_simulator/app.py /app/app.py
+
+EXPOSE 5000
+
+CMD ["python", "app.py"]

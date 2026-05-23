@@ -1,0 +1,30 @@
+# ARP Guardian Monitor — Dockerfile
+# Runs the ARP watch daemon with scapy for live packet capture.
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# System dependencies for scapy
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tcpdump \
+    iproute2 \
+    net-tools \
+    iputils-ping \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Application code
+COPY src/ /app/src/
+
+# Data directory
+RUN mkdir -p /app/data
+
+# Expose API port
+EXPOSE 8081
+
+# Run the ARP monitor in live capture mode
+CMD ["python", "-m", "src.arp_guardian", "--iface", "eth0", "--api-port", "8081", "--switch-url", "http://switch-sim:5000"]
